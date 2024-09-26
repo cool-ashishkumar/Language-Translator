@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translator with Speech Input and Output</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: red;
+        }
+
+        label {
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        input[type="text"], select, input[type="submit"], button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0 20px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        input[type="submit"], button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        input[type="submit"]:hover, button:hover {
+            background-color: #45a049;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-left: 6px solid #2196F3;
+        }
+
+        .result p {
+            margin: 0;
+            font-size: 1.1em;
+        }
+
+        .footer {
+            text-align: center;
+            font-size: 0.9em;
+            margin-top: 20px;
+            color: #777;
+        }
+
+        .clear-btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+            border-radius: 5px;
+        }
+
+        .clear-btn:hover {
+            background-color: #79c53e;
+        }
+
+        .mic-button {
+            background-color: #7dcea0 ;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .mic-button:hover {
+            background-color: #0056b3;
+        }
+
+        .speak-btn {
+            background-color: #FF00FF;
+            color: white;
+            border: none;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .speak-btn:hover {
+            background-color: #e64a19;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Language Translator</h1>
+
+        <form method="POST" action="/translate" id="translateForm">
+            <label for="english_text">Enter Text or Speak:</label><br>
+            <input type="text" id="english_text" name="english_text" placeholder="Enter or Speak Text"><br>
+
+            <!-- Microphone button for speech input -->
+            <button type="button" class="mic-button" id="micButton">🎤 Start Speaking</button>
+
+            <label for="target_language">Choose a language:</label><br>
+            <select id="target_language" name="target_language">
+                <option value="es">Spanish</option>
+                <option value="hi">Hindi</option>
+                <option value="ta">Tamil</option>
+                <option value="gu">Gujarati</option>
+                <option value="bn">Bengali</option>
+                <option value="bho">Bhojpuri</option>
+                <option value="ar">Arabic</option>
+            </select><br>
+        </form>
+
+        <!-- Translation Result Section -->
+        {% if translation %}
+        <div class="result" id="resultSection">
+            <p><strong>Translation:</strong> <span id="translatedText">{{ translation }}</span></p>
+        </div>
+
+        <!-- Speak Translation Button -->
+        <button class="speak-btn" id="speakButton">🔊 Speak Translation</button>
+
+        <!-- Clear Button -->
+        <button class="clear-btn" id="clearBtn" onclick="clearTranslation()">Clear</button>
+        {% endif %}
+
+        <div class="footer">
+            <p>all_right_deserved @infineworld❤</p>
+        </div>
+    </div>
+
+    <script>
+        // Function to clear the translation and reset the form
+        function clearTranslation() {
+            document.getElementById('english_text').value = '';
+            document.getElementById('resultSection').style.display = 'none';
+            document.getElementById('clearBtn').style.display = 'none';
+        }
+
+        // Automatically hide the clear button and result section if there is no translation
+        window.onload = function() {
+            const resultSection = document.getElementById('resultSection');
+            const clearBtn = document.getElementById('clearBtn');
+
+            if (!resultSection) {
+                clearBtn.style.display = 'none';
+            }
+        }
+
+        // Speech-to-text functionality using Web Speech API
+        const micButton = document.getElementById('micButton');
+        const englishText = document.getElementById('english_text');
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+
+        micButton.addEventListener('click', function() {
+            recognition.start();
+        });
+
+        recognition.onstart = function() {
+            micButton.innerText = "🎤 Listening...";
+        };
+
+        recognition.onspeechend = function() {
+            recognition.stop();
+            micButton.innerText = "🎤 Start Speaking";
+        };
+
+        recognition.onresult = function(event) {
+            const spokenText = event.results[0][0].transcript;
+            englishText.value = spokenText;
+            autoTranslate(); // Auto-translate after capturing speech
+        };
+
+        // Auto-translation functionality
+        const targetLanguage = document.getElementById('target_language');
+
+        englishText.addEventListener('input', function() {
+            autoTranslate();
+        });
+
+        targetLanguage.addEventListener('change', function() {
+            autoTranslate();
+        });
+
+        function autoTranslate() {
+            const textValue = englishText.value.trim();
+            if (textValue.length > 0) {
+                document.getElementById('translateForm').submit();
+            }
+        }
+
+        // Text-to-speech functionality (Speak Translation)
+        const speakButton = document.getElementById('speakButton');
+        speakButton.addEventListener('click', function() {
+            const translationText = document.getElementById('translatedText').textContent;  // Get the translated text
+
+            if (translationText) {
+                const utterance = new SpeechSynthesisUtterance(translationText);
+                utterance.lang = targetLanguage.value;  // Set language based on selected translation
+                window.speechSynthesis.speak(utterance);
+            }
+        });
+    </script>
+</body>
+</html>
